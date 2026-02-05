@@ -19,6 +19,21 @@ class ManimCodeGenerator:
         genai.configure(api_key=self.api_key)
         self.model = genai.GenerativeModel(GEMINI_CONFIG["model"])
         
+        # Configure FFmpeg path explicitly for Manim
+        from manim import config
+        import shutil
+        
+        if not shutil.which("ffmpeg"):
+            # Try to locate it in common Winget location
+            ffmpeg_path = r"C:\Users\pk\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.0.1-full_build\bin\ffmpeg.exe"
+            if os.path.exists(ffmpeg_path):
+                print(f"[MANIM] FFmpeg found at {ffmpeg_path}, configuring...")
+                config.ffmpeg_executable = ffmpeg_path
+                # Also add to PATH for subprocess calls
+                os.environ["PATH"] += os.pathsep + os.path.dirname(ffmpeg_path)
+            else:
+                 print("[MANIM] WARNING: FFmpeg not found in path or default location.")
+        
     def generate_video(self, topic: str, explanation: str, video_id: str) -> str:
         """
         Main pipeline: Generate Manim code -> Render video
