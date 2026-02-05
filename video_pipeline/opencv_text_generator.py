@@ -15,14 +15,14 @@ class EnhancedVideoGenerator:
     
     def __init__(self, videos_dir: Path):
         self.videos_dir = videos_dir
-        self.width = 1280
-        self.height = 720
+        self.width = 1920
+        self.height = 1080
         self.fps = 30
-        self.bg_color = (15, 15, 35)  # Dark blue background
+        self.bg_color = (10, 10, 25)  # Darker, richer blue background
         self.text_color = (255, 255, 255)  # White
-        self.accent_color = (100, 200, 255)  # Light blue
-        self.success_color = (100, 255, 100)  # Green
-        self.warning_color = (255, 200, 100)  # Orange
+        self.accent_color = (0, 200, 255)  # Bright cyan
+        self.success_color = (50, 255, 120)  # Bright green
+        self.warning_color = (255, 180, 50)  # Golden orange
         
     def generate_video(
         self,
@@ -133,26 +133,26 @@ class EnhancedVideoGenerator:
             elif progress < 0.35:
                 self._draw_title(frame, topic, 1.0)
                 section_progress = (progress - 0.15) / 0.2
-                self._draw_objects_group(frame, num1, 200, 300, section_progress, "First Group")
-                self._draw_large_number(frame, str(num1), 200, 500, section_progress)
+                self._draw_objects_group(frame, num1, 400, 450, section_progress, "First Group")
+                self._draw_large_number(frame, str(num1), 400, 750, section_progress)
             
             # Stage 3: Show plus sign (35-45%)
             elif progress < 0.45:
                 self._draw_title(frame, topic, 1.0)
-                self._draw_objects_group(frame, num1, 200, 300, 1.0, "First Group")
-                self._draw_large_number(frame, str(num1), 200, 500, 1.0)
+                self._draw_objects_group(frame, num1, 400, 450, 1.0, "First Group")
+                self._draw_large_number(frame, str(num1), 400, 750, 1.0)
                 section_progress = (progress - 0.35) / 0.1
-                self._draw_operator(frame, "+", self.width // 2, 400, section_progress)
+                self._draw_operator(frame, "+", self.width // 2, 600, section_progress)
             
             # Stage 4: Show second group (45-65%)
             elif progress < 0.65:
                 self._draw_title(frame, topic, 1.0)
-                self._draw_objects_group(frame, num1, 200, 300, 1.0, "First Group")
-                self._draw_large_number(frame, str(num1), 200, 500, 1.0)
-                self._draw_operator(frame, "+", self.width // 2, 400, 1.0)
+                self._draw_objects_group(frame, num1, 400, 450, 1.0, "First Group")
+                self._draw_large_number(frame, str(num1), 400, 750, 1.0)
+                self._draw_operator(frame, "+", self.width // 2, 600, 1.0)
                 section_progress = (progress - 0.45) / 0.2
-                self._draw_objects_group(frame, num2, 1080, 300, section_progress, "Second Group")
-                self._draw_large_number(frame, str(num2), 1080, 500, section_progress)
+                self._draw_objects_group(frame, num2, 1520, 450, section_progress, "Second Group")
+                self._draw_large_number(frame, str(num2), 1520, 750, section_progress)
             
             # Stage 5: Combine and show result (65-85%)
             elif progress < 0.85:
@@ -160,15 +160,15 @@ class EnhancedVideoGenerator:
                 section_progress = (progress - 0.65) / 0.2
                 
                 # Move objects together
-                offset = int(section_progress * 300)
-                self._draw_objects_group(frame, num1, 200 + offset, 300, 1.0, "")
-                self._draw_objects_group(frame, num2, 1080 - offset, 300, 1.0, "")
+                offset = int(section_progress * 450)
+                self._draw_objects_group(frame, num1, 400 + offset, 450, 1.0, "")
+                self._draw_objects_group(frame, num2, 1520 - offset, 450, 1.0, "")
                 
                 # Show equals and result
                 if section_progress > 0.5:
                     result_alpha = (section_progress - 0.5) / 0.5
-                    self._draw_operator(frame, "=", self.width // 2, 550, result_alpha)
-                    self._draw_large_number(frame, str(result), self.width // 2, 600, result_alpha, color=self.success_color)
+                    self._draw_operator(frame, "=", self.width // 2, 800, result_alpha)
+                    self._draw_large_number(frame, str(result), self.width // 2, 900, result_alpha, color=self.success_color)
             
             # Stage 6: Final answer (85-100%)
             else:
@@ -225,8 +225,8 @@ class EnhancedVideoGenerator:
         # Show count if more than 10
         if count > 10:
             count_text = f"x{count}"
-            cv2.putText(frame, count_text, (start_x, start_y + rows * spacing + 40),
-                       cv2.FONT_HERSHEY_SIMPLEX, 1.0, self.warning_color, 2)
+            cv2.putText(frame, count_text, (start_x, start_y + rows * spacing + 60),
+                       cv2.FONT_HERSHEY_SIMPLEX, 1.5, self.warning_color, 3)
     
     def _draw_large_number(self, frame: np.ndarray, number: str, x: int, y: int, alpha: float, color=None):
         """Draw a large number"""
@@ -236,8 +236,8 @@ class EnhancedVideoGenerator:
         actual_color = tuple(int(c * alpha) for c in color)
         
         font = cv2.FONT_HERSHEY_SIMPLEX
-        font_scale = 2.0
-        thickness = 5
+        font_scale = 3.0
+        thickness = 8
         
         text_size = cv2.getTextSize(number, font, font_scale, thickness)[0]
         text_x = x - text_size[0] // 2
@@ -253,8 +253,8 @@ class EnhancedVideoGenerator:
         color = tuple(int(c * alpha) for c in self.warning_color)
         
         font = cv2.FONT_HERSHEY_SIMPLEX
-        font_scale = 3.0
-        thickness = 6
+        font_scale = 4.5
+        thickness = 10
         
         text_size = cv2.getTextSize(operator, font, font_scale, thickness)[0]
         text_x = x - text_size[0] // 2
@@ -283,7 +283,7 @@ class EnhancedVideoGenerator:
             self._draw_title(frame, topic, 1.0)
             section_progress = (progress - 0.15) / 0.25
             if formulas:
-                self._draw_centered_formula(frame, formulas[0], 200, section_progress)
+                self._draw_centered_formula(frame, formulas[0], 300, section_progress)
         
         # Stage 3: Explanation (40-80%)
         elif progress < 0.80:
@@ -291,7 +291,7 @@ class EnhancedVideoGenerator:
             if formulas:
                 self._draw_centered_formula(frame, formulas[0], 200, 1.0)
             section_progress = (progress - 0.40) / 0.40
-            self._draw_wrapped_explanation(frame, explanation, 350, section_progress)
+            self._draw_wrapped_explanation(frame, explanation, 550, section_progress)
         
         # Stage 4: Conclusion (80-100%)
         else:
@@ -340,7 +340,7 @@ class EnhancedVideoGenerator:
             self._draw_right_triangle(frame, 1.0)
             section_progress = (progress - 0.50) / 0.25
             if formulas:
-                self._draw_centered_formula(frame, formulas[0], 550, section_progress)
+                self._draw_centered_formula(frame, formulas[0], 900, section_progress)
         
         # Stage 4: Conclusion
         else:
@@ -354,9 +354,9 @@ class EnhancedVideoGenerator:
         """Draw a right triangle with labels"""
         # Triangle points
         center_x = self.width // 2
-        center_y = 350
+        center_y = 540
         
-        size = int(200 * alpha)
+        size = int(300 * alpha)
         
         pt1 = (center_x - size, center_y + size)  # Bottom left
         pt2 = (center_x + size, center_y + size)  # Bottom right
@@ -409,7 +409,7 @@ class EnhancedVideoGenerator:
         elif progress < 0.7:
             self._draw_title(frame, topic, 1.0)
             section_progress = (progress - 0.2) / 0.5
-            self._draw_wrapped_explanation(frame, explanation, 200, section_progress)
+            self._draw_wrapped_explanation(frame, explanation, 300, section_progress)
         
         # Stage 3: Formula (if available)
         elif progress < 0.9:
@@ -432,12 +432,12 @@ class EnhancedVideoGenerator:
             title = title[:47] + "..."
         
         font = cv2.FONT_HERSHEY_SIMPLEX
-        font_scale = 1.5
-        thickness = 4
+        font_scale = 2.5
+        thickness = 6
         
         text_size = cv2.getTextSize(title, font, font_scale, thickness)[0]
         x = (self.width - text_size[0]) // 2
-        y = 80
+        y = 120
         
         color = tuple(int(c * alpha) for c in self.accent_color)
         
@@ -457,7 +457,7 @@ class EnhancedVideoGenerator:
         words = text.split()
         lines = []
         current_line = []
-        max_chars = 70
+        max_chars = 85
         
         for word in words:
             test_line = " ".join(current_line + [word])
@@ -476,13 +476,13 @@ class EnhancedVideoGenerator:
         num_lines_to_show = min(len(lines), int(len(lines) * alpha) + 1)
         
         font = cv2.FONT_HERSHEY_SIMPLEX
-        font_scale = 0.8
-        thickness = 2
-        line_height = 45
+        font_scale = 1.2
+        thickness = 3
+        line_height = 70
         
         for i, line in enumerate(lines[:num_lines_to_show]):
             y = start_y + (i * line_height)
-            x = 50
+            x = 80
             
             if i == num_lines_to_show - 1:
                 line_alpha = min(1.0, (alpha * len(lines)) % 1.0 + 0.3)
@@ -498,8 +498,8 @@ class EnhancedVideoGenerator:
             formula = formula[:57] + "..."
         
         font = cv2.FONT_HERSHEY_SIMPLEX
-        font_scale = 1.2
-        thickness = 3
+        font_scale = 2.0
+        thickness = 5
         
         text_size = cv2.getTextSize(formula, font, font_scale, thickness)[0]
         x = (self.width - text_size[0]) // 2
@@ -541,8 +541,8 @@ class EnhancedVideoGenerator:
             text = text[:37] + "..."
         
         font = cv2.FONT_HERSHEY_SIMPLEX
-        font_scale = 2.0
-        thickness = 5
+        font_scale = 3.0
+        thickness = 7
         
         text_size = cv2.getTextSize(text, font, font_scale, thickness)[0]
         x = (self.width - text_size[0]) // 2
@@ -562,15 +562,15 @@ class EnhancedVideoGenerator:
             check_color = tuple(int(c * check_alpha) for c in self.success_color)
             check_size = int(60 * check_alpha)
             
-            cv2.circle(frame, (self.width // 2, y + 80), check_size, check_color, -1)
+            cv2.circle(frame, (self.width // 2, y + 120), check_size, check_color, -1)
             
             # Draw checkmark symbol
             pts = np.array([
-                [self.width // 2 - 20, y + 80],
-                [self.width // 2 - 5, y + 95],
-                [self.width // 2 + 25, y + 65]
+                [self.width // 2 - 30, y + 120],
+                [self.width // 2 - 8, y + 150],
+                [self.width // 2 + 40, y + 90]
             ], np.int32)
-            cv2.polylines(frame, [pts], False, (0, 0, 0), 6)
+            cv2.polylines(frame, [pts], False, (0, 0, 0), 10)
 
 
 # Export function to replace in animation_generator.py

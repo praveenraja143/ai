@@ -111,8 +111,12 @@ def create_educational_video(text, topic):
         
         # 1. Generate Script
         progress_bar.progress(20, text="Writing script...")
-        # Simple script generation if the complex one fails or is too slow
-        script_scenes = [f"{topic}\n\n{text[:500]}"] 
+        # Use the improved script generator
+        script_scenes = generate_script(text)
+        
+        # Ensure we have the topic as context if possible, insert as first scene if not present
+        if topic and topic not in script_scenes[0]:
+            script_scenes.insert(0, topic) 
         
         # 2. Generate Video
         progress_bar.progress(40, text="Rendering animation...")

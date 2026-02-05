@@ -14,17 +14,38 @@ def generate_script(answer_text: str) -> List[str]:
     Returns:
         List of scene descriptions for video generation
     """
-    # Placeholder implementation
-    # Future: Replace with LLM-based script generation
+    # Split text into meaningful chunks (paragraphs)
+    # This is a basic heuristic since we don't have the LLM here immediately available
+    # unless passed in.
     
-    # Pass the full answer text as the first scene
-    # The video generator will use this to create the video
-    scenes = [
-        answer_text,  # Full answer for video generation
-        "Show effort or process",
-        "Show final result"
-    ]
+    # 1. Clean the text
+    text = answer_text.strip()
     
+    # 2. Split into paragraphs
+    paragraphs = [p.strip() for p in text.split('\n\n') if p.strip()]
+    
+    if not paragraphs:
+        paragraphs = [text]
+        
+    # 3. Create scenes from paragraphs
+    # If a paragraph is too long, we might just take the first few sentences
+    scenes = []
+    
+    # Add title scene using the first sentence or a summary check
+    if len(paragraphs) > 0:
+        first_para = paragraphs[0]
+        # customized behavior: if it looks like a title, use it
+        scenes.append(first_para)
+        
+        # Add subsequent paragraphs as scenes, limit to 5 scenes max
+        for p in paragraphs[1:5]:
+            if len(p) > 20: # smooth out noise
+                scenes.append(p)
+    
+    # Ensure at least one scene
+    if not scenes:
+        scenes = [answer_text]
+        
     return scenes
 
 

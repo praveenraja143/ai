@@ -21,6 +21,12 @@ LLM_CONFIG = {
     "context_window": 2048,
 }
 
+# Gemini Configuration
+GEMINI_CONFIG = {
+    "api_key": os.environ.get("GEMINI_API_KEY"),
+    "model": "gemini-pro",
+}
+
 # Alternative models (user can switch)
 AVAILABLE_MODELS = [
     "mistral",      # 7B - Fast and efficient

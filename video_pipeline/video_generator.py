@@ -35,76 +35,30 @@ class HybridVideoGenerator:
         
         # Fallback to text-based generator
         if not self.use_ai:
-            # Import the legacy OpenCV text generator
-            import sys
-            import cv2
-            import numpy as np
-            from pathlib import Path
-            from config import VIDEOS_DIR
-            
-            # Create a simple text-based video generator inline
-            class SimpleTextGenerator:
-                def __init__(self):
-                    self.width = 1280
-                    self.height = 720
-                    self.fps = 30
-                    self.bg_color = (15, 15, 35)
-                    self.text_color = (255, 255, 255)
-                    self.accent_color = (100, 200, 255)
-                
-                def create_video_from_answer(self, answer_text: str, video_id: str, duration: int = 10) -> str:
-                    try:
-                        output_path = Path(VIDEOS_DIR) / f"{video_id}.mp4"
-                        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-                        out = cv2.VideoWriter(str(output_path), fourcc, self.fps, (self.width, self.height))
-                        
-                        total_frames = duration * self.fps
-                        title = answer_text[:50] if len(answer_text) > 50 else answer_text
-                        
-                        for frame_num in range(total_frames):
-                            frame = np.full((self.height, self.width, 3), self.bg_color, dtype=np.uint8)
-                            progress = frame_num / total_frames
-                            
-                            # Simple title display
-                            if progress < 0.3:
-                                alpha = progress / 0.3
-                                color = tuple(int(c * alpha) for c in self.text_color)
-                                cv2.putText(frame, title, (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1.2, color, 3)
-                            else:
-                                cv2.putText(frame, title, (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1.2, self.text_color, 3)
-                                
-                                # Show text content
-                                y_pos = 200
-                                for line in answer_text[:500].split('\n')[:8]:
-                                    if line.strip():
-                                        cv2.putText(frame, line[:80], (50, y_pos), cv2.FONT_HERSHEY_SIMPLEX, 0.6, self.text_color, 1)
-                                        y_pos += 40
-                            
-                            out.write(frame)
-                        
-                        out.release()
-                        print(f"✅ Text video created: {output_path}")
-                        return str(output_path)
-                    except Exception as e:
-                        print(f"❌ Error creating text video: {e}")
-                        return None
-            
-            self.text_gen = SimpleTextGenerator()
-    
+            try:
+                from .opencv_text_generator import EnhancedVideoGenerator
+                self.text_gen = EnhancedVideoGenerator(Path(VIDEOS_DIR))
+                print("[VIDEO PIPELINE] Enhanced video generator initialized for fallback")
+            except Exception as e:
+                print(f"[VIDEO PIPELINE] Failed to initialize EnhancedVideoGenerator: {e}")
+                # Utter fallback if even that fails (unlikely)
+                self.text_gen = None
+
     def create_video_from_answer(self, answer_text: str, video_id: str) -> str:
         """
-        Create video from answer text using AI images
-        
-        Args:
-            answer_text: The answer text to visualize
-            video_id: Unique identifier for the video
-            
-        Returns:
-            Path to the generated video file
+        Create video from answer text using AI images or fallback
         """
-        if not self.use_ai:
-            print("[VIDEO PIPELINE] Using fallback text-based generator")
-            return self.text_gen.create_video_from_answer(answer_text, video_id, duration=10)
+        if not self.use_ai or not hasattr(self, 'image_gen'):
+            print("[VIDEO PIPELINE] Using Enhanced Video Generator")
+            if self.text_gen:
+                # Extract a topic from the first line or use default
+                lines = answer_text.split('\n')
+                topic = lines[0] if lines else "Explanation"
+                explanation = "\n".join(lines[1:]) if len(lines) > 1 else answer_text
+                
+                return self.text_gen.generate_video(topic, explanation, video_id=video_id, duration=15)
+            else:
+                return None
         
         try:
             print(f"\n[VIDEO PIPELINE] Generating AI video for task {video_id}")
@@ -114,8 +68,10 @@ class HybridVideoGenerator:
             image_paths = self.image_gen.generate_scene_images(answer_text, video_id, num_scenes=3)
             
             if not image_paths or len(image_paths) == 0:
-                print("[VIDEO PIPELINE] No images generated, falling back to text video")
-                return self.text_gen.create_video_from_answer(answer_text, video_id, duration=10)
+                print("[VIDEO PIPELINE] No images generated, falling back to enhanced video")
+                if self.text_gen:
+                    return self.text_gen.generate_video("Explanation", answer_text, video_id=video_id)
+                return None
             
             # Step 2: Create video from images
             print("[VIDEO PIPELINE] Step 2: Creating video from images...")
@@ -132,14 +88,16 @@ class HybridVideoGenerator:
                 return str(output_path)
             else:
                 print("[VIDEO PIPELINE] Video creation failed, using fallback")
-                return self.text_gen.create_video_from_answer(answer_text, video_id, duration=10)
+                if self.text_gen:
+                    return self.text_gen.generate_video("Explanation", answer_text, video_id=video_id)
+                return None
                 
         except Exception as e:
             print(f"[VIDEO PIPELINE] Error in AI video generation: {e}")
-            import traceback
-            traceback.print_exc()
-            print("[VIDEO PIPELINE] Falling back to text-based generator")
-            return self.text_gen.create_video_from_answer(answer_text, video_id, duration=10)
+            print("[VIDEO PIPELINE] Falling back to enhanced generator")
+            if self.text_gen:
+                return self.text_gen.generate_video("Error Fallback", answer_text, video_id=video_id)
+            return None
 
 
 # Main function to replace the current implementation
