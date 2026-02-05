@@ -11,7 +11,7 @@ def generate_script(answer_text: str) -> List[str]:
     """
     try:
         genai.configure(api_key=GEMINI_CONFIG["api_key"])
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel(GEMINI_CONFIG["model"])
         
         prompt = f"""
         You are a screenwriter for a 3D animated educational series (Pixar style).

@@ -17,7 +17,7 @@ class ManimCodeGenerator:
     def __init__(self):
         self.api_key = GEMINI_CONFIG["api_key"]
         genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel("gemini-1.5-flash")
+        self.model = genai.GenerativeModel(GEMINI_CONFIG["model"])
         
     def generate_video(self, topic: str, explanation: str, video_id: str) -> str:
         """
