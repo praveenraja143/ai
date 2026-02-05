@@ -90,22 +90,29 @@ class AIImageGenerator:
         """Create descriptive prompts using Gemini Text model"""
         try:
             model = genai.GenerativeModel("gemini-1.5-flash") # Use flash for prompt Gen
+            
+            # Updated Prompt for Storytelling style
             prompt = f"""
-            Create {num_scenes} distinct, detailed image generation prompts to visually explain this concept:
+            You are a creative director for a 3D animated educational short.
+            Create {num_scenes} sequential image prompts to visualize this concept:
             Concept: "{answer_text[:500]}..."
             
-            Requirements:
-            - Prompt 1: Introduction/Overview (visual metaphor)
-            - Prompt 2: Detailed Mechanism/Process
-            - Prompt 3: Real-world example or Application
+            Style Guide: 
+            - 3D Pixar/Disney style animation, vibrant colors, expressive characters.
+            - Cute, friendly atmosphere.
+            - High quality 3D render, raytracing, 4k.
             
-            Format: PRECISE VISUAL DESCRIPTION ONLY. No "Prompt 1:" labels. Just the description per line.
-            Style: professional educational illustration, 3D render style, clear, bright lighting.
+            Sequence:
+            1. Scene 1: An engaging opening shot introducing the topic (visual metaphor).
+            2. Scene 2: The core action or mechanism explaining HOW it works.
+            3. Scene 3: A fun conclusion or real-world application.
+            
+            Format: Just the visual description per line. No labels.
             """
             response = model.generate_content(prompt)
             lines = [l.strip() for l in response.text.strip().split('\n') if l.strip()]
             return lines[:num_scenes]
         except:
              # Fallback
-             base = "educational 3d, animated style, clear visualization of: "
+             base = "3d pixar style educational animation, cute, vibrant, 4k render of: "
              return [f"{base} {answer_text[:50]} scene {i+1}" for i in range(num_scenes)]
