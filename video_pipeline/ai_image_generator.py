@@ -29,9 +29,8 @@ class AIImageGenerator:
     
     def generate_image(self, prompt: str, output_path: str, width: int = 1024, height: int = 1024) -> str:
         """
-        Generate an AI image from text prompt using Google API
+        Generate an AI image from text prompt using Pollinations.ai (Free, High Quality)
         """
-        try:
         try:
             print(f"[AI IMAGE] Generating with Pollinations AI: {prompt[:50]}...")
             
@@ -56,18 +55,29 @@ class AIImageGenerator:
                 return output_path
             else:
                 print(f"[AI IMAGE] Pollinations API failed: {response.status_code}")
-                # Use fallback logic if network fails (circles)
                 raise Exception("Pollinations API failed")
             
         except Exception as e:
             print(f"[AI IMAGE] Error generating image: {e}")
             # Even if API fails, return a synthetic image so video creation works
-            
-        except Exception as e:
-            print(f"[AI IMAGE] Error generating image via Google API: {e}")
-            # Even if API fails, return a synthetic image so video creation works
             try:
-                img = Image.new('RGB', (width, height), (20, 20, 40))
+                # Fallback: Create a beautiful synthetic image using PIL
+                print("[AI IMAGE] Fallback... Creating synthetic scene...")
+                import random
+                from PIL import ImageDraw, ImageFont
+                
+                # Create abstract art background
+                img = Image.new('RGB', (width, height), color=(10, 10, 25))
+                draw = ImageDraw.Draw(img)
+                
+                # Draw random "bokeh" circles for style
+                for _ in range(20):
+                    x = random.randint(0, width)
+                    y = random.randint(0, height)
+                    r = random.randint(50, 300)
+                    color = (random.randint(50, 255), random.randint(50, 255), random.randint(100, 255), 100)
+                    draw.ellipse((x-r, y-r, x+r, y+r), fill=color)
+                
                 os.makedirs(os.path.dirname(output_path), exist_ok=True)
                 img.save(output_path)
                 return output_path
