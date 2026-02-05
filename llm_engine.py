@@ -14,26 +14,19 @@ class LLMEngine:
     """Engine for generating educational content using Gemini (Cloud) or Ollama (Local)"""
     
     def __init__(self):
-        self.provider = "ollama"
-        self.model = LLM_CONFIG["model"]
+        self.provider = "gemini"
+        self.model = GEMINI_CONFIG["model"]
         
-        # Check for Gemini API Key
-        if GEMINI_CONFIG["api_key"]:
-            try:
-                genai.configure(api_key=GEMINI_CONFIG["api_key"])
-                self.gemini_model = genai.GenerativeModel(GEMINI_CONFIG["model"])
-                self.provider = "gemini"
-                self.model = GEMINI_CONFIG["model"]
-                print(f"[LLM ENGINE] Using Google Gemini ({self.model})")
-            except Exception as e:
-                print(f"[LLM ENGINE] Gemini configuration failed: {e}")
+        # Configure Gemini
+        if not GEMINI_CONFIG["api_key"]:
+            raise ValueError("GEMINI_API_KEY is required. Please set it in config.py or environment variables.")
         
-        # Always initialize Ollama config for fallback
-        self.base_url = OLLAMA_CONFIG["base_url"]
-        self.timeout = OLLAMA_CONFIG["timeout"]
-
-        if self.provider == "ollama":
-            print(f"[LLM ENGINE] Using Local Ollama ({self.model})")
+        try:
+            genai.configure(api_key=GEMINI_CONFIG["api_key"])
+            self.gemini_model = genai.GenerativeModel(GEMINI_CONFIG["model"])
+            print(f"[LLM ENGINE] Using Google Gemini ({self.model})")
+        except Exception as e:
+            raise RuntimeError(f"[LLM ENGINE] Gemini configuration failed: {e}")
     
     def generate_response(
         self,
@@ -41,15 +34,12 @@ class LLMEngine:
         context: Optional[str] = None
     ) -> Dict:
         """
-        Generate an educational response to a question
+        Generate an educational response to a question using Gemini only
         """
-        if self.provider == "gemini":
-            return self._generate_with_gemini(question, context)
-        else:
-            return self._generate_with_ollama(question, context)
+        return self._generate_with_gemini(question, context)
 
     def _generate_with_gemini(self, question: str, context: Optional[str] = None) -> Dict:
-        """Generate response using Google Gemini with fallback to Ollama"""
+        """Generate response using Google Gemini"""
         try:
             prompt = self._build_educational_prompt(question, context)
             
@@ -67,70 +57,13 @@ class LLMEngine:
                 "key_concepts": key_concepts
             }
         except Exception as e:
-            print(f"[LLM ENGINE] Gemini failed: {e}")
-            print("[LLM ENGINE] Falling back to local Ollama...")
-            return self._generate_with_ollama(question, context)
-
-    def _generate_with_ollama(self, question: str, context: Optional[str] = None) -> Dict:
-        """Generate response using Ollama"""
-        # Defensive check: Ensure configuration exists
-        if not hasattr(self, 'base_url'):
-            print("[LLM ENGINE] WARNING: base_url missing, using defaults")
-            self.base_url = "http://127.0.0.1:11434"
-            self.timeout = 120
-
-        try:
-            prompt = self._build_educational_prompt(question, context)
-            
-            response = requests.post(
-                f"{self.base_url}/api/generate",
-                json={
-                    "model": self.model,
-                    "prompt": prompt,
-                    "stream": False,
-                    "options": {
-                        "temperature": LLM_CONFIG["temperature"],
-                        "num_predict": LLM_CONFIG["max_tokens"]
-                    }
-                },
-                timeout=self.timeout
-            )
-            
-            if response.status_code != 200:
-                return {
-                    "error": True,
-                    "answer": f"Error: Ollama returned status {response.status_code}",
-                    "topic": "Error",
-                    "key_concepts": []
-                }
-            
-            data = response.json()
-            answer = data.get("response", "").strip()
-            
-            topic = self._extract_topic(question)
-            key_concepts = self._extract_key_concepts(answer)
-            
-            return {
-                "error": False,
-                "answer": answer,
-                "topic": topic,
-                "key_concepts": key_concepts
-            }
-            
-        except requests.exceptions.ConnectionError:
             return {
                 "error": True,
-                "answer": "Error: Cannot connect to Ollama. Make sure 'ollama serve' is running.",
+                "answer": f"Gemini Error: {str(e)}",
                 "topic": "Error",
                 "key_concepts": []
             }
-        except Exception as e:
-            return {
-                "error": True,
-                "answer": f"Error: {str(e)}",
-                "topic": "Error",
-                "key_concepts": []
-            }
+
     
     def _build_educational_prompt(self, question: str, context: Optional[str] = None) -> str:
         """Build a prompt optimized for educational content"""
@@ -162,51 +95,17 @@ class LLMEngine:
         return concepts[:5]
     
     def list_available_models(self) -> List[str]:
-        """List all available models"""
-        if self.provider == "gemini":
-            return ["gemini-pro"]
-        try:
-            response = requests.get(f"{self.base_url}/api/tags", timeout=5)
-            if response.status_code == 200:
-                return [m["name"] for m in response.json().get("models", [])]
-        except:
-            pass
-        return []
+        """List all available models (Gemini only)"""
+        return ["gemini-pro"]
     
-    def pull_model(self, model_name: str) -> bool:
-        """Pull a model (Ollama only)"""
-        if self.provider != "ollama":
-            return True
-        try:
-            requests.post(f"{self.base_url}/api/pull", json={"name": model_name}, timeout=600)
-            return True
-        except:
-            return False
-
+    
     def check_health(self) -> Dict:
-        """Check system health"""
-        status = {
-            "ollama_running": False,
-            "model_available": False,
-            "available_models": []
+        """Check Gemini health"""
+        return {
+            "ollama_running": True,  # Virtual status for frontend compatibility
+            "model_available": True,
+            "available_models": ["gemini-pro"]
         }
-        
-        if self.provider == "gemini":
-            status["ollama_running"] = True # Virtual status for frontend
-            status["model_available"] = True
-            status["available_models"] = ["gemini-pro"]
-            return status
-            
-        try:
-            response = requests.get(f"{self.base_url}/api/tags", timeout=5)
-            if response.status_code == 200:
-                status["ollama_running"] = True
-                models = [m["name"] for m in response.json().get("models", [])]
-                status["available_models"] = models
-                status["model_available"] = any(self.model in name for name in models)
-        except:
-            pass
-        return status
 
 
 def check_system_ready() -> Dict:
