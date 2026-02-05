@@ -96,7 +96,7 @@ class LLMEngine:
     
     def list_available_models(self) -> List[str]:
         """List all available models (Gemini only)"""
-        return ["gemini-pro"]
+        return ["gemini-1.5-flash"]
     
     
     def check_health(self) -> Dict:
@@ -104,7 +104,7 @@ class LLMEngine:
         return {
             "ollama_running": True,  # Virtual status for frontend compatibility
             "model_available": True,
-            "available_models": ["gemini-pro"]
+            "available_models": ["gemini-1.5-flash"]
         }
 
 
