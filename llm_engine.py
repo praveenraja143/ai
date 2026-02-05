@@ -27,10 +27,12 @@ class LLMEngine:
                 print(f"[LLM ENGINE] Using Google Gemini ({self.model})")
             except Exception as e:
                 print(f"[LLM ENGINE] Gemini configuration failed: {e}")
-                
+        
+        # Always initialize Ollama config for fallback
+        self.base_url = OLLAMA_CONFIG["base_url"]
+        self.timeout = OLLAMA_CONFIG["timeout"]
+
         if self.provider == "ollama":
-            self.base_url = OLLAMA_CONFIG["base_url"]
-            self.timeout = OLLAMA_CONFIG["timeout"]
             print(f"[LLM ENGINE] Using Local Ollama ({self.model})")
     
     def generate_response(
@@ -47,7 +49,7 @@ class LLMEngine:
             return self._generate_with_ollama(question, context)
 
     def _generate_with_gemini(self, question: str, context: Optional[str] = None) -> Dict:
-        """Generate response using Google Gemini"""
+        """Generate response using Google Gemini with fallback to Ollama"""
         try:
             prompt = self._build_educational_prompt(question, context)
             
@@ -65,12 +67,9 @@ class LLMEngine:
                 "key_concepts": key_concepts
             }
         except Exception as e:
-            return {
-                "error": True,
-                "answer": f"Gemini Error: {str(e)}",
-                "topic": "Error",
-                "key_concepts": []
-            }
+            print(f"[LLM ENGINE] Gemini failed: {e}")
+            print("[LLM ENGINE] Falling back to local Ollama...")
+            return self._generate_with_ollama(question, context)
 
     def _generate_with_ollama(self, question: str, context: Optional[str] = None) -> Dict:
         """Generate response using Ollama"""
