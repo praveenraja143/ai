@@ -23,7 +23,7 @@ class HybridVideoGenerator:
     """Generates videos using AI images and OpenCV animation"""
     
     def __init__(self):
-    def __init__(self):
+
         # Initialize text generator (Always available as fallback)
         try:
             from .opencv_text_generator import EnhancedVideoGenerator
