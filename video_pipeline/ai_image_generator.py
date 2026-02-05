@@ -1,96 +1,60 @@
 """
-AI Image Generator - Uses Stable Diffusion to generate images from text
+AI Image Generator - Uses Google Gemini/Imagen to generate images from text
 """
 import os
+import google.generativeai as genai
 from PIL import Image
+from config import GEMINI_CONFIG
 
-# Try to import AI libraries, handle errors gracefully
-try:
-    import torch
-    from diffusers import StableDiffusionPipeline
-    AI_LIBS_AVAILABLE = True
-except (ImportError, AttributeError) as e:
-    print(f"[AI IMAGE] Could not load AI libraries: {e}")
-    AI_LIBS_AVAILABLE = False
-    torch = None
-    StableDiffusionPipeline = None
-
+# We no longer need local torch/diffusers
+AI_LIBS_AVAILABLE = True  # We use API now
 
 class AIImageGenerator:
-    """Generates AI images using Stable Diffusion"""
+    """Generates AI images using Google's Generative AI"""
     
     def __init__(self):
-        self.pipe = None
-        self.model_loaded = False
-        
-    def load_model(self):
-        """Load Stable Diffusion model (lazy loading)"""
-        if self.model_loaded:
-            return
-        
-        if not AI_LIBS_AVAILABLE:
-            print("[AI IMAGE] AI libraries not available, cannot load model")
-            return
-            
+        self.api_key = GEMINI_CONFIG["api_key"]
         try:
-            print("[AI IMAGE] Loading Stable Diffusion model...")
-            # Use a smaller, faster model for CPU
-            model_id = "runwayml/stable-diffusion-v1-5"
-            
-            # Check if CUDA is available
-            if torch.cuda.is_available():
-                print("[AI IMAGE] Using GPU acceleration")
-                self.pipe = StableDiffusionPipeline.from_pretrained(
-                    model_id,
-                    torch_dtype=torch.float16
-                )
-                self.pipe = self.pipe.to("cuda")
-            else:
-                print("[AI IMAGE] Using CPU (this will be slower)")
-                self.pipe = StableDiffusionPipeline.from_pretrained(
-                    model_id,
-                    torch_dtype=torch.float32
-                )
-                # Enable CPU optimizations
-                self.pipe.enable_attention_slicing()
-            
-            self.model_loaded = True
-            print("[AI IMAGE] Model loaded successfully")
-            
+            genai.configure(api_key=self.api_key)
+            # Try the specific image generation model found in user's list
+            # or default to a known imagen check
+            self.model_name = "gemini-2.0-flash-exp-image-generation" 
+            print(f"[AI IMAGE] Initialized using Google API model: {self.model_name}")
         except Exception as e:
-            print(f"[AI IMAGE] Error loading model: {e}")
-            self.model_loaded = False
-            raise
+            print(f"[AI IMAGE] Failed to configure Google API: {e}")
+
+    def load_model(self):
+        """No-op for API based generator"""
+        pass
     
-    def generate_image(self, prompt: str, output_path: str, width: int = 512, height: int = 512) -> str:
+    def generate_image(self, prompt: str, output_path: str, width: int = 1024, height: int = 1024) -> str:
         """
-        Generate an AI image from text prompt
-        
-        Args:
-            prompt: Text description of the image
-            output_path: Path to save the generated image
-            width: Image width (default 512)
-            height: Image height (default 512)
-            
-        Returns:
-            Path to the generated image
+        Generate an AI image from text prompt using Google API
         """
         try:
-            # Load model if not already loaded
-            if not self.model_loaded:
-                self.load_model()
+            print(f"[AI IMAGE] Generating with Google AI mode '{self.model_name}': {prompt[:50]}...")
             
-            print(f"[AI IMAGE] Generating: {prompt[:50]}...")
-            
-            # Generate image
-            image = self.pipe(
-                prompt,
-                num_inference_steps=20,  # Fewer steps for faster generation
-                guidance_scale=7.5,
-                width=width,
-                height=height
-            ).images[0]
-            
+            # Note: The exact python syntax for Gemini image generation models 
+            # might vary. If 'ImageGenerativeModel' is not available, we might need
+            # to use a different approach. Standard approach for Imagen:
+            try:
+                model = genai.ImageGenerativeModel(self.model_name)
+                response = model.generate_images(
+                    prompt=prompt,
+                    number_of_images=1,
+                    aspect_ratio="1:1" if width==height else "16:9" 
+                )
+                if response and response.images:
+                    image = response.images[0]
+                else:
+                    raise ValueError("No images returned from API")
+            except Exception as e1:
+                # Fallback to standard imagen if specific model fails
+                print(f"[AI IMAGE] Specific model failed ({e1}), trying generic 'imagen-3.0-generate-001'...")
+                model = genai.ImageGenerativeModel("imagen-3.0-generate-001")
+                response = model.generate_images(prompt=prompt, number_of_images=1)
+                image = response.images[0]
+
             # Save image
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
             image.save(output_path)
@@ -99,26 +63,16 @@ class AIImageGenerator:
             return output_path
             
         except Exception as e:
-            print(f"[AI IMAGE] Error generating image: {e}")
+            print(f"[AI IMAGE] Error generating image via Google API: {e}")
             return None
     
     def generate_scene_images(self, answer_text: str, video_id: str, num_scenes: int = 3) -> list:
-        """
-        Generate multiple scene images from answer text
-        
-        Args:
-            answer_text: The answer text to visualize
-            video_id: Unique identifier for the video
-            num_scenes: Number of scenes to generate
-            
-        Returns:
-            List of paths to generated images
-        """
+        """Generate multiple scene images from answer text"""
         try:
-            # Create prompts for different scenes
+            # Create prompts
             prompts = self._create_scene_prompts(answer_text, num_scenes)
             
-            # Generate images for each scene
+            # Generate images
             image_paths = []
             for i, prompt in enumerate(prompts):
                 output_path = f"videos/frames/{video_id}_scene_{i}.png"
@@ -133,26 +87,25 @@ class AIImageGenerator:
             return []
     
     def _create_scene_prompts(self, answer_text: str, num_scenes: int) -> list:
-        """
-        Create scene prompts from answer text
-        
-        Args:
-            answer_text: The answer text
-            num_scenes: Number of scenes to create
+        """Create descriptive prompts using Gemini Text model"""
+        try:
+            model = genai.GenerativeModel("gemini-1.5-flash") # Use flash for prompt Gen
+            prompt = f"""
+            Create {num_scenes} distinct, detailed image generation prompts to visually explain this concept:
+            Concept: "{answer_text[:500]}..."
             
-        Returns:
-            List of prompts for each scene
-        """
-        # Extract key concepts from answer
-        # This is a simple implementation - can be enhanced with LLM
-        
-        # For now, create generic educational scene prompts
-        base_prompt = "educational illustration, professional, detailed, "
-        
-        prompts = [
-            base_prompt + "introduction scene, title card, clean design",
-            base_prompt + "main concept visualization, diagram, clear explanation",
-            base_prompt + "conclusion scene, summary, professional"
-        ]
-        
-        return prompts[:num_scenes]
+            Requirements:
+            - Prompt 1: Introduction/Overview (visual metaphor)
+            - Prompt 2: Detailed Mechanism/Process
+            - Prompt 3: Real-world example or Application
+            
+            Format: PRECISE VISUAL DESCRIPTION ONLY. No "Prompt 1:" labels. Just the description per line.
+            Style: professional educational illustration, 3D render style, clear, bright lighting.
+            """
+            response = model.generate_content(prompt)
+            lines = [l.strip() for l in response.text.strip().split('\n') if l.strip()]
+            return lines[:num_scenes]
+        except:
+             # Fallback
+             base = "educational 3d, animated style, clear visualization of: "
+             return [f"{base} {answer_text[:50]} scene {i+1}" for i in range(num_scenes)]

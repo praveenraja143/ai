@@ -39,7 +39,11 @@ class ImageToVideoAnimator:
             print(f"[VIDEO ANIMATOR] Creating video from {len(image_paths)} images...")
             
             # Create video writer
-            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            # Create video writer (Use avc1 for browser check)
+            try:
+                fourcc = cv2.VideoWriter_fourcc(*'avc1')
+            except:
+                fourcc = cv2.VideoWriter_fourcc(*'mp4v')
             out = cv2.VideoWriter(
                 output_path,
                 fourcc,

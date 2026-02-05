@@ -13,10 +13,10 @@ from config import VIDEOS_DIR
 try:
     from .ai_image_generator import AIImageGenerator
     from .image_to_video import ImageToVideoAnimator
-    AI_AVAILABLE = True
-except ImportError:
+    AI_AVAILABLE = True 
+except ImportError as e:
     AI_AVAILABLE = False
-    print("[VIDEO PIPELINE] AI modules not available, using fallback")
+    print(f"[VIDEO PIPELINE] AI modules not available: {e}")
 
 
 class HybridVideoGenerator:
