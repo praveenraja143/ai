@@ -23,6 +23,16 @@ class HybridVideoGenerator:
     """Generates videos using AI images and OpenCV animation"""
     
     def __init__(self):
+    def __init__(self):
+        # Initialize text generator (Always available as fallback)
+        try:
+            from .opencv_text_generator import EnhancedVideoGenerator
+            self.text_gen = EnhancedVideoGenerator(Path(VIDEOS_DIR))
+            print("[VIDEO PIPELINE] Enhanced video generator initialized")
+        except Exception as e:
+            print(f"[VIDEO PIPELINE] Failed to initialize EnhancedVideoGenerator: {e}")
+            self.text_gen = None
+
         self.use_ai = AI_AVAILABLE
         if self.use_ai:
             try:
@@ -33,16 +43,8 @@ class HybridVideoGenerator:
                 print(f"[VIDEO PIPELINE] Failed to initialize AI: {e}")
                 self.use_ai = False
         
-        # Fallback to text-based generator
         if not self.use_ai:
-            try:
-                from .opencv_text_generator import EnhancedVideoGenerator
-                self.text_gen = EnhancedVideoGenerator(Path(VIDEOS_DIR))
-                print("[VIDEO PIPELINE] Enhanced video generator initialized for fallback")
-            except Exception as e:
-                print(f"[VIDEO PIPELINE] Failed to initialize EnhancedVideoGenerator: {e}")
-                # Utter fallback if even that fails (unlikely)
-                self.text_gen = None
+             print("[VIDEO PIPELINE] AI modules unavailable. Using pure EnhancedVideoGenerator.")
 
     def create_video_from_answer(self, answer_text: str, video_id: str) -> str:
         """
