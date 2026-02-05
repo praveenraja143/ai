@@ -5,3 +5,7 @@ python-multipart==0.0.6
 requests==2.31.0
 manim==0.18.0
 ollama==0.1.6
+streamlit
+google-generativeai
+pytest
+openai
