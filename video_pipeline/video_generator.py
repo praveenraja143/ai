@@ -11,94 +11,57 @@ from config import VIDEOS_DIR
 
 # Import AI modules
 try:
-    from .ai_image_generator import AIImageGenerator
-    from .image_to_video import ImageToVideoAnimator
-    AI_AVAILABLE = True 
+    from .manim_generator import ManimCodeGenerator
+    MANIM_AVAILABLE = True 
 except ImportError as e:
-    AI_AVAILABLE = False
-    print(f"[VIDEO PIPELINE] AI modules not available: {e}")
+    MANIM_AVAILABLE = False
+    print(f"[VIDEO PIPELINE] Manim module not available: {e}")
 
 
 class HybridVideoGenerator:
-    """Generates videos using AI images and OpenCV animation"""
+    """Generates videos using Manim (Primary) or OpenCV text (Fallback)"""
     
     def __init__(self):
-
-        # Initialize text generator (Always available as fallback)
+        # Initialize text generator (Fallback)
         try:
             from .opencv_text_generator import EnhancedVideoGenerator
             self.text_gen = EnhancedVideoGenerator(Path(VIDEOS_DIR))
-            print("[VIDEO PIPELINE] Enhanced video generator initialized")
-        except Exception as e:
-            print(f"[VIDEO PIPELINE] Failed to initialize EnhancedVideoGenerator: {e}")
+        except:
             self.text_gen = None
 
-        self.use_ai = AI_AVAILABLE
-        if self.use_ai:
+        self.use_manim = MANIM_AVAILABLE
+        if self.use_manim:
             try:
-                self.image_gen = AIImageGenerator()
-                self.animator = ImageToVideoAnimator()
-                print("[VIDEO PIPELINE] Hybrid AI video generator initialized")
+                self.manim_gen = ManimCodeGenerator()
+                print("[VIDEO PIPELINE] Manim Generator initialized")
             except Exception as e:
-                print(f"[VIDEO PIPELINE] Failed to initialize AI: {e}")
-                self.use_ai = False
+                print(f"[VIDEO PIPELINE] Failed to initialize Manim: {e}")
+                self.use_manim = False
         
-        if not self.use_ai:
-             print("[VIDEO PIPELINE] AI modules unavailable. Using pure EnhancedVideoGenerator.")
-
     def create_video_from_answer(self, answer_text: str, video_id: str, script_scenes: List[str] = None) -> str:
         """
-        Create video from answer text or script scenes
+        Create video using Manim
         """
-        if not self.use_ai or not hasattr(self, 'image_gen'):
-            print("[VIDEO PIPELINE] Using Enhanced Video Generator")
-            # ... (fallback logic)
-            return self.text_gen.generate_video("Explanation", answer_text, video_id=video_id)
-        
-        try:
-            print(f"\n[VIDEO PIPELINE] Generating AI video for task {video_id}")
+        topic = "Explanation"
+        if script_scenes:
+            # Join script for context (Manim needs the full flow)
+            explanation = "\n".join(script_scenes)
+        else:
+            explanation = answer_text
             
-            # Step 1: Generate AI images for scenes
-            print("[VIDEO PIPELINE] Step 1: Generating AI images...")
-            
-            if script_scenes:
-                # Use the pre-generated story script
-                print(f"[VIDEO PIPELINE] Using {len(script_scenes)} script scenes for visualization")
-                image_paths = self.image_gen.generate_images_from_list(script_scenes, video_id)
-            else:
-                image_paths = self.image_gen.generate_scene_images(answer_text, video_id, num_scenes=3)
-            
-            if not image_paths or len(image_paths) == 0:
-                print("[VIDEO PIPELINE] No images generated, falling back to enhanced video")
-                if self.text_gen:
-                    return self.text_gen.generate_video("Explanation", answer_text, video_id=video_id)
-                return None
-            
-            # Step 2: Create video from images
-            print("[VIDEO PIPELINE] Step 2: Creating video from images...")
-            output_path = Path(VIDEOS_DIR) / f"{video_id}.mp4"
-            video_path = self.animator.create_video_from_images(
-                image_paths,
-                str(output_path),
-                duration_per_image=3,
-                transition_duration=0.5
-            )
+        if self.use_manim:
+            print(f"[VIDEO PIPELINE] Attempting Manim render for {video_id}...")
+            video_path = self.manim_gen.generate_video(topic, explanation, video_id)
             
             if video_path:
-                print(f"[VIDEO PIPELINE] ✅ AI video created: {video_path}")
-                return str(output_path)
-            else:
-                print("[VIDEO PIPELINE] Video creation failed, using fallback")
-                if self.text_gen:
-                    return self.text_gen.generate_video("Explanation", answer_text, video_id=video_id)
-                return None
-                
-        except Exception as e:
-            print(f"[VIDEO PIPELINE] Error in AI video generation: {e}")
-            print("[VIDEO PIPELINE] Falling back to enhanced generator")
-            if self.text_gen:
-                return self.text_gen.generate_video("Error Fallback", answer_text, video_id=video_id)
-            return None
+                print(f"[VIDEO PIPELINE] ✅ Manim video created: {video_path}")
+                return video_path
+            
+        # Fallback
+        print("[VIDEO PIPELINE] Manim failed or unavailable. Using standard text video.")
+        if self.text_gen:
+            return self.text_gen.generate_video(topic, explanation, video_id=video_id)
+        return None
 
 
 # Main function to replace the current implementation
