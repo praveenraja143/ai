@@ -46,28 +46,27 @@ class HybridVideoGenerator:
         if not self.use_ai:
              print("[VIDEO PIPELINE] AI modules unavailable. Using pure EnhancedVideoGenerator.")
 
-    def create_video_from_answer(self, answer_text: str, video_id: str) -> str:
+    def create_video_from_answer(self, answer_text: str, video_id: str, script_scenes: List[str] = None) -> str:
         """
-        Create video from answer text using AI images or fallback
+        Create video from answer text or script scenes
         """
         if not self.use_ai or not hasattr(self, 'image_gen'):
             print("[VIDEO PIPELINE] Using Enhanced Video Generator")
-            if self.text_gen:
-                # Extract a topic from the first line or use default
-                lines = answer_text.split('\n')
-                topic = lines[0] if lines else "Explanation"
-                explanation = "\n".join(lines[1:]) if len(lines) > 1 else answer_text
-                
-                return self.text_gen.generate_video(topic, explanation, video_id=video_id, duration=15)
-            else:
-                return None
+            # ... (fallback logic)
+            return self.text_gen.generate_video("Explanation", answer_text, video_id=video_id)
         
         try:
             print(f"\n[VIDEO PIPELINE] Generating AI video for task {video_id}")
             
             # Step 1: Generate AI images for scenes
             print("[VIDEO PIPELINE] Step 1: Generating AI images...")
-            image_paths = self.image_gen.generate_scene_images(answer_text, video_id, num_scenes=3)
+            
+            if script_scenes:
+                # Use the pre-generated story script
+                print(f"[VIDEO PIPELINE] Using {len(script_scenes)} script scenes for visualization")
+                image_paths = self.image_gen.generate_images_from_list(script_scenes, video_id)
+            else:
+                image_paths = self.image_gen.generate_scene_images(answer_text, video_id, num_scenes=3)
             
             if not image_paths or len(image_paths) == 0:
                 print("[VIDEO PIPELINE] No images generated, falling back to enhanced video")
@@ -122,7 +121,7 @@ def generate_video(script_scenes: List[str], video_id: str, videos_dir: str = "v
     
     # Create generator and generate video
     generator = HybridVideoGenerator()
-    video_path = generator.create_video_from_answer(answer_text, video_id)
+    video_path = generator.create_video_from_answer(answer_text, video_id, script_scenes=script_scenes)
     
     if video_path:
         print(f"[VIDEO PIPELINE] Video generation completed successfully")

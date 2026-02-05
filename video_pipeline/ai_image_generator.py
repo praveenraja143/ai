@@ -88,20 +88,21 @@ class AIImageGenerator:
         try:
             # Create prompts
             prompts = self._create_scene_prompts(answer_text, num_scenes)
-            
-            # Generate images
-            image_paths = []
-            for i, prompt in enumerate(prompts):
-                output_path = f"videos/frames/{video_id}_scene_{i}.png"
-                path = self.generate_image(prompt, output_path)
-                if path:
-                    image_paths.append(path)
-            
-            return image_paths
+            return self.generate_images_from_list(prompts, video_id)
             
         except Exception as e:
             print(f"[AI IMAGE] Error generating scene images: {e}")
             return []
+
+    def generate_images_from_list(self, prompts: list, video_id: str) -> list:
+        """Generate images from a list of prompts"""
+        image_paths = []
+        for i, prompt in enumerate(prompts):
+            output_path = f"videos/frames/{video_id}_scene_{i}.png"
+            path = self.generate_image(prompt, output_path)
+            if path:
+                image_paths.append(path)
+        return image_paths
     
     def _create_scene_prompts(self, answer_text: str, num_scenes: int) -> list:
         """Create descriptive prompts using Gemini Text model"""
