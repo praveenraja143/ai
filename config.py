@@ -23,7 +23,7 @@ LLM_CONFIG = {
 
 # Gemini Configuration
 GEMINI_CONFIG = {
-    "api_key": os.environ.get("GEMINI_API_KEY"),
+    "api_key": os.environ.get("GEMINI_API_KEY", "AIzaSyC7XsUIXpTFiASVo7131Xo4zHWA2YuFBlYithu"),
     "model": "gemini-pro",
 }
 
