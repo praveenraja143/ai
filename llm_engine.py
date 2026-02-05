@@ -73,6 +73,12 @@ class LLMEngine:
 
     def _generate_with_ollama(self, question: str, context: Optional[str] = None) -> Dict:
         """Generate response using Ollama"""
+        # Defensive check: Ensure configuration exists
+        if not hasattr(self, 'base_url'):
+            print("[LLM ENGINE] WARNING: base_url missing, using defaults")
+            self.base_url = "http://127.0.0.1:11434"
+            self.timeout = 120
+
         try:
             prompt = self._build_educational_prompt(question, context)
             
