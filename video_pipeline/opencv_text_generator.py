@@ -42,7 +42,11 @@ class EnhancedVideoGenerator:
             output_path = self.videos_dir / filename
             
             # Create video writer
-            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            # Create video writer (Use avc1 for better browser compatibility)
+            try:
+                fourcc = cv2.VideoWriter_fourcc(*'avc1')
+            except:
+                fourcc = cv2.VideoWriter_fourcc(*'mp4v')
             out = cv2.VideoWriter(
                 str(output_path),
                 fourcc,
