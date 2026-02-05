@@ -16,69 +16,76 @@ class ImageToVideoAnimator:
         self.height = 720
         self.fps = 30
         
+    def _apply_ken_burns_effect(self, img: np.ndarray, frames: int) -> List[np.ndarray]:
+        """Apply Ken Burns (Zoom/Pan) effect to an image"""
+        h, w = img.shape[:2]
+        motion_frames = []
+        
+        # Randomly choose zoom direction (in or out)
+        zoom_factor = 1.15  # Zoom in/out by 15%
+        
+        # Center crop (full view)
+        center_x, center_y = w // 2, h // 2
+        
+        for i in range(frames):
+            progress = i / frames
+            scale = 1.0 + (zoom_factor - 1.0) * progress
+            
+            # Create rotation matrix for scaling from center
+            M = cv2.getRotationMatrix2D((center_x, center_y), 0, scale)
+            result = cv2.warpAffine(img, M, (w, h))
+            motion_frames.append(result)
+            
+        return motion_frames
+
     def create_video_from_images(
         self,
         image_paths: List[str],
         output_path: str,
-        duration_per_image: int = 3,
+        duration_per_image: int = 4,  # Increased duration for effect
         transition_duration: float = 0.5
     ) -> str:
-        """
-        Create video from a list of images with transitions
-        
-        Args:
-            image_paths: List of paths to images
-            output_path: Path to save the video
-            duration_per_image: How long each image is displayed (seconds)
-            transition_duration: Duration of transition between images (seconds)
-            
-        Returns:
-            Path to the generated video
-        """
+        """Create video with Ken Burns effect"""
         try:
-            print(f"[VIDEO ANIMATOR] Creating video from {len(image_paths)} images...")
+            print(f"[VIDEO ANIMATOR] Creating animated story from {len(image_paths)} scenes...")
             
             # Create video writer
-            # Create video writer (Use avc1 for browser check)
             try:
                 fourcc = cv2.VideoWriter_fourcc(*'avc1')
             except:
                 fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            out = cv2.VideoWriter(
-                output_path,
-                fourcc,
-                self.fps,
-                (self.width, self.height)
-            )
-            
-            # Process each image
-            for i, img_path in enumerate(image_paths):
-                print(f"[VIDEO ANIMATOR] Processing image {i+1}/{len(image_paths)}")
                 
-                # Load and resize image
+            out = cv2.VideoWriter(output_path, fourcc, self.fps, (self.width, self.height))
+            
+            for i, img_path in enumerate(image_paths):
+                # Load resizing
                 img = self._load_and_resize_image(img_path)
                 
-                # Add image frames (static)
-                static_frames = int((duration_per_image - transition_duration) * self.fps)
-                for _ in range(static_frames):
-                    out.write(img)
+                # Generate motion frames
+                static_frames_count = int((duration_per_image - transition_duration) * self.fps)
+                motion_sequence = self._apply_ken_burns_effect(img, static_frames_count)
                 
-                # Add transition to next image (if not last image)
+                for frame in motion_sequence:
+                    out.write(frame)
+                
+                # Transition (Cross-fade)
                 if i < len(image_paths) - 1:
                     next_img = self._load_and_resize_image(image_paths[i + 1])
-                    transition_frames = int(transition_duration * self.fps)
+                    next_start = self._apply_ken_burns_effect(next_img, 1)[0] # Start state of next
                     
-                    for frame_num in range(transition_frames):
-                        alpha = frame_num / transition_frames
-                        blended = cv2.addWeighted(img, 1 - alpha, next_img, alpha, 0)
+                    last_frame = motion_sequence[-1]
+                    trans_frames = int(transition_duration * self.fps)
+                    
+                    for f in range(trans_frames):
+                        alpha = f / trans_frames
+                        blended = cv2.addWeighted(last_frame, 1 - alpha, next_start, alpha, 0)
                         out.write(blended)
-            
+                        
             out.release()
-            print(f"[VIDEO ANIMATOR] Video created: {output_path}")
+            print(f"[VIDEO ANIMATOR] Animated story created: {output_path}")
             return output_path
-            
         except Exception as e:
-            print(f"[VIDEO ANIMATOR] Error creating video: {e}")
+            print(f"Error: {e}")
             import traceback
             traceback.print_exc()
             return None
