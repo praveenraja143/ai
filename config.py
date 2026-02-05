@@ -15,7 +15,7 @@ TEMP_DIR.mkdir(exist_ok=True)
 
 # LLM Configuration
 LLM_CONFIG = {
-    "model": "mistral",  # Without tag for compatibility
+    "model": "mistral:latest",  # Match installed Ollama model
     "temperature": 0.5,
     "max_tokens": 500,
     "context_window": 2048,
