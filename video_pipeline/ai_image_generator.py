@@ -32,45 +32,36 @@ class AIImageGenerator:
         Generate an AI image from text prompt using Google API
         """
         try:
-            print(f"[AI IMAGE] Generating with Google AI mode '{self.model_name}': {prompt[:50]}...")
+        try:
+            print(f"[AI IMAGE] Generating with Pollinations AI: {prompt[:50]}...")
             
-            # Try Google Image Gen
-            if hasattr(genai, 'ImageGenerativeModel'):
-                model = genai.ImageGenerativeModel(self.model_name)
-                response = model.generate_images(prompt=prompt, number_of_images=1)
-                image = response.images[0]
+            # Use Pollinations.ai (No API key required, reliable free tier)
+            import requests
+            import time
+            from urllib.parse import quote
+            
+            # Encode prompt
+            encoded_prompt = quote(prompt)
+            url = f"https://pollinations.ai/p/{encoded_prompt}?width={width}&height={height}&seed={int(time.time())}&model=flux"
+            
+            # Download image
+            response = requests.get(url, timeout=30)
+            if response.status_code == 200:
+                # Save image
+                os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                with open(output_path, 'wb') as f:
+                    f.write(response.content)
+                    
+                print(f"[AI IMAGE] Saved to: {output_path}")
+                return output_path
             else:
-                # Fallback: Create a beautiful synthetic image using PIL
-                print("[AI IMAGE] ImageGenerativeModel not available. Creating synthetic scene...")
-                import random
-                from PIL import ImageDraw, ImageFont
-                
-                # Create abstract art background
-                image = Image.new('RGB', (width, height), color=(10, 10, 25))
-                draw = ImageDraw.Draw(image)
-                
-                # Draw random "bokeh" circles for style
-                for _ in range(20):
-                    x = random.randint(0, width)
-                    y = random.randint(0, height)
-                    r = random.randint(50, 300)
-                    color = (random.randint(50, 255), random.randint(50, 255), random.randint(100, 255), 100)
-                    draw.ellipse((x-r, y-r, x+r, y+r), fill=color)
-                
-                # Add text hint
-                try:
-                    # Try to draw the concept keyword
-                    text = prompt.split(':')[0][:20] 
-                    draw.text((50, height-100), text, fill=(255, 255, 255))
-                except:
-                    pass
-                
-            # Save image
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
-            image.save(output_path)
+                print(f"[AI IMAGE] Pollinations API failed: {response.status_code}")
+                # Use fallback logic if network fails (circles)
+                raise Exception("Pollinations API failed")
             
-            print(f"[AI IMAGE] Saved to: {output_path}")
-            return output_path
+        except Exception as e:
+            print(f"[AI IMAGE] Error generating image: {e}")
+            # Even if API fails, return a synthetic image so video creation works
             
         except Exception as e:
             print(f"[AI IMAGE] Error generating image via Google API: {e}")
